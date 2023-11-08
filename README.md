@@ -4,16 +4,8 @@ Parallax is an illusion of depth.
 
 ## Sample
 
-![samples/sample.gif]
+![sample parallax](samples/sample.gif)
 Created with `python main.py samples/data/ship.egg --distance 500 --model-hpr "(90, 0, 0)"`
-
-## References
-
-- 1977 [GENERAL CLIPPING ON AN OBLIQUE VIEWING FRUSTRUM](https://dl.acm.org/doi/pdf/10.1145/563858.563898)
-- 1992 [The CAVE: audio visual experience automatic virtual environment](https://doi.org/10.1145%2F129888.129892)
-- 2008 [Johnny Lee](https://www.youtube.com/watch?v=Jd3-eiid-Uw)
-- 2014 [Amazon Firephone](https://en.wikipedia.org/wiki/Fire_Phone)
-- [Daito Manabe](https://daito.ws/en/)
 
 ## Run
 
@@ -28,3 +20,11 @@ Created with `python main.py samples/data/ship.egg --distance 500 --model-hpr "(
 - [ ] Poorly calibrated multiple web cameras
 - [ ] Easily configurable HDRI
 - [ ] Light Field Display (Output as plenoptic function)
+
+## References & Inspirations
+
+- 1977 [GENERAL CLIPPING ON AN OBLIQUE VIEWING FRUSTRUM](https://dl.acm.org/doi/pdf/10.1145/563858.563898)
+- 1992 [The CAVE: audio visual experience automatic virtual environment](https://doi.org/10.1145%2F129888.129892)
+- 2008 [Johnny Lee](https://www.youtube.com/watch?v=Jd3-eiid-Uw)
+- 2014 [Amazon Firephone](https://en.wikipedia.org/wiki/Fire_Phone)
+- [Daito Manabe](https://daito.ws/en/)

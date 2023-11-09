@@ -1,0 +1,7 @@
+{
+    "fov_deg": 89.59,
+    "sensor": {
+        "resolution": [640, 480]
+    },
+    "note": "fov can be checked by `rs-enumerate-devices -c`"
+}

@@ -1,0 +1,10 @@
+Note on Macbook Pro 2021 M1
+
+Web Camera:
+Position: [0, 0, 94.515]; which is "5 + .5 * window.height"
+
+Window:
+(286.45, 179.03): Monitor size in mm
+(1440,  900): Pixel space - This is what we need
+(2880, 1800): With HiDPI 2x scaled
+(2560, 1600): Physical resolution

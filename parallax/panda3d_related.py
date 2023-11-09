@@ -11,6 +11,8 @@ from direct.showbase.ShowBase import ShowBase
 
 from parallax.data import Hpr, Window, Xyz, hpr2mat, ProjectionMatrix
 
+import structlog
+LOGGER = structlog.get_logger()
 
 class FakeWindowApp(ShowBase):
     def __init__(self):
@@ -197,6 +199,9 @@ class FakeWindowApp(ShowBase):
         w, h = window.size_mm
 
         _, y, _ = xyz_cam_
+        if y == 0:
+            LOGGER.critical(f"encountered depth 0!!")
+            return
         # xyz_cam
         l, _, b, _ = world2cam @ window2world @ ( .5 * w, 0, -.5 * h, 1) / y
         r, _, t, _ = world2cam @ window2world @ (-.5 * w, 0,  .5 * h, 1) / y
@@ -208,7 +213,7 @@ class FakeWindowApp(ShowBase):
         lens.setCoordinateSystem(panda3d.core.CSYupRight)
         lens.setUserMat(
             ProjectionMatrix.from_frustum(
-                l, r, b, t, 1, 1000,
+                l, r, b, t, 1, 10000,
             ).as_panda3d()
         )
         lens.setFilmSize(2)

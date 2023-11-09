@@ -18,7 +18,6 @@ class RealWorldSetup:
             "Macbook Pro 2021 M1": {
                 "webcam": {
                     "fov_deg": 54.611362,
-                    "focal_length": 35,
                     "sensor": {
                         "resolution": (1280, 720),
                     },
@@ -39,6 +38,31 @@ class RealWorldSetup:
                     "pose": {
                         "xyz": (0, 0, 0),
                         "hpr": (0, 10, 0),
+                    },
+                },
+            }, 
+            "My personal setup": {
+                "webcam": {
+                    # intel realsense D435
+                    "fov_deg": 89.59,  # x 58.36
+                    "sensor": {
+                        "resolution": (640, 480),
+                    },
+                    "pose": {
+                        "xyz": (0, 30, - 150),
+                        "hpr": (0, 0, 0),
+                        "relative_to": "window",
+                    },
+                },
+                "window": {
+                    # LG 34WL500-B
+                    # (825.6, 369.8): Monitor size in mm
+                    "width": 2560,
+                    "height": 1080,
+                    "pixels_per_mm": 3.0,
+                    "pose": {
+                        "xyz": (0, 0, 0),
+                        "hpr": (0, 0, 0),
                     },
                 },
             }

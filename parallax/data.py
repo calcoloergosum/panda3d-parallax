@@ -27,7 +27,6 @@ class Sensor:
 @dataclass
 class Webcam:
     fov_deg: Degree  # angle of max(sensor_resolution)
-    focal_length: Size1f
     sensor: Sensor
     pose: Pose
 

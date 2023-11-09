@@ -37,7 +37,7 @@ class MovingMeasure(Generic[T]):
         return cls([], max_length)
 
 
-class MovingAverage2D(MovingMeasure[Tuple[float, float]]):
+class MovingAverageND(MovingMeasure[Tuple[float, float]]):
     def _get(self) -> T:
         return np.mean(self.values, axis=0)
 
@@ -69,7 +69,7 @@ def loop_frame(on_frame: Callable[[np.ndarray], bool]) -> bool:
         cap.release()
 
 
-def loop_face_track(
+def loop_face_track_cv2(
     on_face: Callable[[np.ndarray, List[Tuple[int, int, int, int]]], bool],
 ) -> bool:
     face_cascade = cv2.CascadeClassifier(
@@ -93,21 +93,103 @@ def loop_face_track(
     return loop_frame(on_frame)
 
 
-def start_face_track(n_frame_to_average: int, debug: bool = False):
-    moving_average = MovingAverage2D.new(n_frame_to_average)
+def xyxy2xywh(xyxys):
+    if len(xyxys) == 0:
+        return []
+    xmin, ymin, xmax, ymax = np.array(xyxys).T
+    return np.array((xmin, ymin, xmax - xmin, ymax - ymin)).T
 
-    def on_face(
-        frame: np.ndarray, xywhs: List[Tuple[int, int, int, int]],
-    ) -> bool:
-        if len(xywhs) == 0:
-            return
-        x, y, w, h = sorted(xywhs, key=lambda xywh: xywh[2] * xywh[3])[-1]
-        if debug:
-            for (x,y,w,h) in xywhs:
-                cv2.rectangle(frame, (x,y), (x+w, y+h),(255,0,0),2)
-            cv2.imshow('frame', frame)
-        xy = ((x + 0.5 * w, y + 0.3 * h))
-        moving_average.push(xy)
-    thread = threading.Thread(target=loop_face_track, args=(on_face,))
-    thread.start()
-    return moving_average
+
+def loop_face_track_realsense(on_face):
+    import pyrealsense2 as rs
+    pipeline = rs.pipeline()
+
+    # Configure streams
+    config = rs.config()
+    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+    # Start streaming
+    pipeline.start(config)
+    align_to = rs.stream.color
+    align = rs.align(align_to)
+
+    print("Loading model")
+    net = cv2.dnn.readNetFromCaffe("deploy.prototxt.txt", "res10_300x300_ssd_iter_140000.caffemodel")
+    try:
+        while True:
+            # Wait for a coherent pair of frames: depth and color
+            frames = pipeline.wait_for_frames()
+            # Align the depth frame to color frame
+            aligned_frames = align.process(frames)
+            aligned_depth_frame = aligned_frames.get_depth_frame()
+            color_frame = aligned_frames.get_color_frame()
+            if not aligned_depth_frame or not color_frame:
+                continue
+                    
+            # Convert images to numpy arrays
+            depth_image = np.asanyarray(aligned_depth_frame.get_data())
+            color_image = np.asanyarray(color_frame.get_data())
+
+            # Create alignment primitive with color as its target stream:
+            align = rs.align(rs.stream.color)
+            frames = align.process(frames)
+
+            # Begin the detection portion
+            (h,w) = color_image.shape[:2]
+            blob = cv2.dnn.blobFromImage(cv2.resize(color_image,(300,300)),1.0,(300,300),(104.0, 177.0, 123.0))
+            net.setInput(blob, "data")
+
+            detections = net.forward("detection_out")
+
+            # loop over the detections
+            boxes = [
+                detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                for i in range(0, detections.shape[2])
+                if detections[0, 0, i, 2] > 0.5
+            ]
+            on_face(xyxy2xywh(boxes), depth_image)
+    finally:
+        # Stop streaming
+        pipeline.stop()
+
+
+def start_face_track(n_frame_to_average: int, method: str = 'realsense', debug: bool = False):
+    if method == 'cv2':
+        moving_average = MovingAverageND.new(n_frame_to_average)
+        loop_face_track = loop_face_track_cv2
+        def on_face(
+            frame: np.ndarray, xywhs: List[Tuple[int, int, int, int]],
+        ) -> bool:
+            if len(xywhs) == 0:
+                return
+            x, y, w, h = sorted(xywhs, key=lambda xywh: xywh[2] * xywh[3])[-1]
+            if debug:
+                for (x,y,w,h) in xywhs:
+                    cv2.rectangle(frame, (x,y), (x+w, y+h),(255,0,0),2)
+                cv2.imshow('frame', frame)
+            xy = ((x + 0.5 * w, y + 0.3 * h))
+            moving_average.push(xy)
+        thread = threading.Thread(target=loop_face_track, args=(on_face,))
+        thread.start()
+        return moving_average
+    if method == 'realsense':
+        moving_average = MovingAverageND.new(n_frame_to_average)
+        loop_face_track = loop_face_track_realsense
+        def on_face(xywhs, depth_image):
+            if len(xywhs) == 0:
+                return
+            x, y, w, h = sorted(xywhs, key=lambda xywh: xywh[2] * xywh[3])[-1]
+            # print(f"{x:.2f} {y:.2f} {w:.2f} {h:.2f}")
+            xy = ((x + 0.5 * w, y + 0.3 * h))
+
+            xc, yc = int(xy[0]), int(xy[1])
+            ds = depth_image[max(0, yc - 10): yc + 10, max(0, xc - 10): xc + 10].flatten()
+            ds = ds[ds > 0]
+            d = np.median(ds)
+            moving_average.push((*xy, d))
+
+        thread = threading.Thread(target=loop_face_track, args=(on_face,))
+        thread.start()
+        return moving_average
+    raise KeyError(f"Unknown method {method}")

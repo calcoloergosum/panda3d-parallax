@@ -17,7 +17,7 @@ def main():
     parser.add_argument('MODEL_DIR', help='Base path of model', type=Path)
     parser.add_argument('--distance', help='distance to the model in mm', type=float, default=2000)
     parser.add_argument('--model-hpr', help='yaw-pitch-roll of model in degrees', type=ast.literal_eval, default=(0, 0, 0))
-    parser.add_argument('--mode', action='store', choices=('rgb', 'depth', 'normals'), default='rgb')
+    parser.add_argument('--track', action='store', choices=('cv2', 'realsense'), default='cv2')
     parser.add_argument('--mkdir', action='store_true')
     args = parser.parse_args()
 
@@ -36,13 +36,17 @@ def main():
     app.add_box(window=cnf.window)
     app.reset_camera((0, args.distance, 0))
 
-    moving_average = parallax.face_track.start_face_track(5)
+    moving_average = parallax.face_track.start_face_track(5, method=args.track)
 
     def on_update(task):
         xy = moving_average.get()
         if xy is None:
             return task.cont
-        xyz_cam = cnf.webcam.image2cam(xy, distance=args.distance)
+        if len(xy) == 2:
+            xyz_cam = cnf.webcam.image2cam(xy, distance=args.distance)
+        if len(xy) == 3:
+            # print(xy)
+            xyz_cam = cnf.webcam.image2cam(xy[:2], distance=xy[2])
         if cnf.webcam.pose.relative_to == 'window':
             *xyz_world, _ = cnf.window.pose.as_mat() @ (*xyz_cam, 1)
         app.apply_offset(xyz_world, cnf.window)

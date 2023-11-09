@@ -7,11 +7,11 @@ from typing import Callable, Tuple
 
 import numpy as np
 import panda3d.core
+import structlog
 from direct.showbase.ShowBase import ShowBase
 
-from parallax.data import Hpr, Window, Xyz, hpr2mat, ProjectionMatrix
+from parallax.data import Hpr, ProjectionMatrix, Window, Xyz, hpr2mat
 
-import structlog
 LOGGER = structlog.get_logger()
 
 class FakeWindowApp(ShowBase):
@@ -200,7 +200,7 @@ class FakeWindowApp(ShowBase):
 
         _, y, _ = xyz_cam_
         if y == 0:
-            LOGGER.critical(f"encountered depth 0!!")
+            LOGGER.critical("encountered depth 0!!")
             return
         # xyz_cam
         l, _, b, _ = world2cam @ window2world @ ( .5 * w, 0, -.5 * h, 1) / y

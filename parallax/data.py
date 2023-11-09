@@ -64,7 +64,7 @@ class Webcam:
     def from_dict(cls, key2value: Dict[str, Any]):
         return cls(
             sensor=Sensor(**key2value.pop("sensor")),
-            pose=Pose(**key2value.pop("pose")),
+            pose=Pose.from_container(key2value),
             **key2value
         )
 
@@ -91,7 +91,7 @@ class Window:
     @classmethod
     def from_dict(cls, key2value: Dict[str, Any]):
         return cls(
-            pose=Pose(**key2value.pop("pose")),
+            pose=Pose.from_container(key2value),
             **key2value
         )
 
@@ -121,6 +121,12 @@ class Pose:
     hpr: Hpr
     relative_to: Optional[str] = None
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.xyz, tuple):
+            self.xyz = tuple(self.xyz)
+        if not isinstance(self.hpr, tuple):
+            self.hpr = tuple(self.hpr)
+
     def as_mat(self):
         """Returns 3d affine transformation that maps
         local coordinates to world coordinates"""
@@ -128,6 +134,10 @@ class Pose:
         mat[:3, :3] = hpr2mat(self.hpr)
         mat[:3, 3] = self.xyz
         return mat
+
+    @classmethod
+    def from_container(cls, a_dict):
+        return cls(**a_dict.pop("pose", {"xyz": (0, 0, 0), "hpr": (0, 0, 0)}))
 
 
 class ProjectionMatrix(Matrix4f):

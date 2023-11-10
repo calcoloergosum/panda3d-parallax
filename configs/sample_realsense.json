@@ -1,0 +1,22 @@
+{
+    "camera": {
+        "fov_deg": 89.59,
+        "sensor": {
+            "resolution": [640, 480]
+        },
+        "pose": {
+            "xyz": [0, 0, -190],
+            "hpr": [0, 10, 0],
+            "relative_to": "window"
+        }
+    },
+    "window": {
+        "width": 2560,
+        "height": 1080,
+        "pixels_per_mm": 3.0,
+        "pose": {
+            "xyz": [0, 0, 0],
+            "hpr": [0, 0, 0]
+        }
+    }
+}

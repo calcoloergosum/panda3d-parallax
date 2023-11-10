@@ -57,10 +57,9 @@ class FakeWindowApp(ShowBase):
         # Determine scale and translation using bounding volume
         trans_center = np.identity(4)
 
-        xs, ys, zs = get_quantile(model, (0.01, 0.5, 0.99))
+        xs, ys, zs = get_quantile(model, (0.001, 0.5, 0.999))
         trans_center[:3, 3] -= np.array((xs[1], ys[1], zs[1]))
         factor = scale_to / max(xs[2] - xs[0], ys[2] - ys[0], zs[2] - zs[0])
-
         scale = np.diag((factor, factor, factor, 1))
 
         # Use given yaw-pitch-roll

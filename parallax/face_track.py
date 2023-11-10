@@ -7,6 +7,8 @@ from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 import cv2
 import numpy as np
 import structlog
+from .data import xyxy2xywh, Xyxy
+
 
 LOGGER = structlog.get_logger(__name__)
 
@@ -93,14 +95,7 @@ def loop_face_track_cv2(
     return loop_frame(on_frame)
 
 
-def xyxy2xywh(xyxys):
-    if len(xyxys) == 0:
-        return []
-    xmin, ymin, xmax, ymax = np.array(xyxys).T
-    return np.array((xmin, ymin, xmax - xmin, ymax - ymin)).T
-
-
-def loop_face_track_realsense(on_face):
+def loop_face_track_realsense(on_face: Callable[[List[Xyxy], np.ndarray], bool]):
     """Much part is borrowed from github.com/kylelscott"""
     # pylint: disable=too-many-locals, import-outside-toplevel
     import pyrealsense2 as rs
@@ -167,7 +162,7 @@ def start_face_track(n_frame_to_average: int, method: str) -> MovingAverageND:
         if len(xywhs) == 0:
             return
         x, y, w, h = sorted(xywhs, key=lambda xywh: xywh[2] * xywh[3])[-1]
-        xy = ((x + 0.5 * w, y + 0.3 * h))
+        xy = ((x + 0.5 * w, y + 0.5 * h))
         moving_average.push(xy)
         return
 
@@ -184,6 +179,8 @@ def start_face_track(n_frame_to_average: int, method: str) -> MovingAverageND:
         xc, yc = int(xy[0]), int(xy[1])
         ds = depth_image[max(0, yc - 10): yc + 10, max(0, xc - 10): xc + 10].flatten()
         ds = ds[ds > 0]
+        if len(ds) == 0:
+            return
         d = np.median(ds)
         moving_average.push((*xy, d))
         return

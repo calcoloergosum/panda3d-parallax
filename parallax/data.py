@@ -17,6 +17,15 @@ Degree = float
 Size1f = float
 Xyz = Tuple[float, float, float]  # location vector; shape = (3,)
 Hpr = Tuple[float, float, float]  # Yaw, Pitch, Roll in degrees
+Xyxy = Tuple[float, float, float, float]  # Bbox format
+Xywh = Tuple[float, float, float, float]  # Bbox format
+
+
+def xyxy2xywh(xyxys: Xyxy) -> Xywh:
+    if len(xyxys) == 0:
+        return []
+    xmin, ymin, xmax, ymax = np.array(xyxys).T
+    return np.array((xmin, ymin, xmax - xmin, ymax - ymin)).T
 
 
 @dataclass

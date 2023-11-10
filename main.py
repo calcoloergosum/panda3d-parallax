@@ -35,11 +35,12 @@ def main():
     app.setup(cnf.window)
     app.setup_lighting(at=cnf.window.pose.xyz,)
     model = app.load_model(args.model)
+    model_scale = np.mean(cnf.window.size_mm) / 3
     app.place_model(
         model,
         at=cnf.window.pose.xyz,
         hpr=args.model_hpr,
-        scale_to=max(cnf.window.size_mm) / 2,
+        scale_to=model_scale,
     )
     app.add_box(window=cnf.window)
     app.reset_camera((0, args.distance, 0))
@@ -71,7 +72,7 @@ def main():
             model,
             at=cnf.window.pose.xyz,
             hpr=args.model_hpr,
-            scale_to=max(cnf.window.size_mm) / 2,
+            scale_to=model_scale,
         )
         app.add_box(window=cnf.window)
 

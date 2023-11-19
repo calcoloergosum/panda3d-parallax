@@ -1,14 +1,17 @@
 """Data types defined here!"""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
-
+import cv2
 import numpy as np
 import panda3d.core
+from typing_extensions import Self
 
 Size1f = float
-Size2u = Tuple[int, int]
+Size2i = Tuple[int, int]
 Size2f = Tuple[float, float]
 Point2f = np.ndarray  # location in 2D; shape = (2,)
 Tangent3f = np.ndarray  # tangent vector; shape = (3,)
@@ -17,8 +20,10 @@ Degree = float
 Size1f = float
 Xyz = Tuple[float, float, float]  # location vector; shape = (3,)
 Hpr = Tuple[float, float, float]  # Yaw, Pitch, Roll in degrees
+AxisAngle = Tuple[float, float, float]  # Rodrigues representation
 Xyxy = Tuple[float, float, float, float]  # Bbox format
 Xywh = Tuple[float, float, float, float]  # Bbox format
+Matrix3f = Tuple[Xyz, Xyz, Xyz]
 
 
 def xyxy2xywh(xyxys: Xyxy) -> Xywh:
@@ -30,7 +35,7 @@ def xyxy2xywh(xyxys: Xyxy) -> Xywh:
 
 @dataclass
 class Sensor:
-    resolution: Size2u
+    resolution: Size2i
 
 
 @dataclass
@@ -90,7 +95,7 @@ class Window:
         return 1 / self.pixels_per_mm
 
     @property
-    def size(self) -> Size2u:
+    def size(self) -> Size2i:
         return (self.width, self.height)
 
     @property
@@ -103,6 +108,10 @@ class Window:
             pose=Pose.from_container(key2value),
             **key2value
         )
+
+    @classmethod
+    def from_json(cls, path: Path) -> Self:
+        return cls.from_dict(json.loads(path.read_text()))
 
 class Matrix4f:
     """Adapter for column-vector style to panda3d row-vector style"""
@@ -127,14 +136,25 @@ class Matrix4f:
 class Pose:
     """pose of a rigid body in 3D"""
     xyz: Xyz
-    hpr: Hpr
+    hpr: Optional[Hpr] = None
+    rvec: Optional[AxisAngle] = None
     relative_to: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.xyz, tuple):
             self.xyz = tuple(self.xyz)
-        if not isinstance(self.hpr, tuple):
-            self.hpr = tuple(self.hpr)
+        if self.hpr is not None:
+            if not isinstance(self.hpr, tuple):
+                self.hpr = tuple(self.hpr)
+        if self.rvec is not None:
+            if not isinstance(self.rvec, tuple):
+                self.rvec = tuple(self.rvec)
+
+    def rot_mat(self):
+        if self.hpr is not None:
+            return hpr2mat(self.hpr)
+        if self.rvec is not None:
+            return cv2.Rodrigues(self.rvec)[0]
 
     def as_mat(self):
         """Returns 3d affine transformation that maps

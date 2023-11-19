@@ -7,8 +7,8 @@ from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 import cv2
 import numpy as np
 import structlog
-from .data import xyxy2xywh, Xyxy
 
+from .data import Xyxy, xyxy2xywh
 
 LOGGER = structlog.get_logger(__name__)
 

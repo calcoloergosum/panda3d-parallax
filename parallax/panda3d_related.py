@@ -205,11 +205,10 @@ class FakeWindowApp(ShowBase):
         l, _, b, _ = world2cam @ window2world @ ( .5 * w, 0, -.5 * h, 1) / y
         r, _, t, _ = world2cam @ window2world @ (-.5 * w, 0,  .5 * h, 1) / y
 
-        # 0.239, -0.239, 0.148, 0.429
         self.cam.setMat(panda3d.core.LMatrix4f(*cam2world.T.flatten()))
         np.testing.assert_almost_equal(self.cam.getPos(), xyz_cam, decimal=4)
         lens = panda3d.core.MatrixLens()
-        lens.setCoordinateSystem(panda3d.core.CSYupRight)
+        # lens.setCoordinateSystem(panda3d.core.CSYupRight)
         lens.setUserMat(
             ProjectionMatrix.from_frustum(
                 l, r, b, t, 1, 10000,

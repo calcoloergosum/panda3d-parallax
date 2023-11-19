@@ -36,8 +36,7 @@ On top of that, our eyes have lenses called cornea. We can only see an object pr
 
 ## Note for Devs
 
-In the code, you will find 3 different coordinate systems, each of which is rather common.
-
+In the code, you will find 3 different coordinate systems.
 - Image coordinates (2D): Left-handed Y down
 - Panda3D coordinates (3D): Right-handed Z up
 - OpenGL coordinates (3D): Right-handed Y up
@@ -46,6 +45,7 @@ In the code, you will find 3 different coordinate systems, each of which is rath
 
 - [x] Single web camera
 - [x] Intel realsense (Linux/Windows only)
+- [ ] Direct rendering of fisheye image
 - [ ] Light Field Display (Output as plenoptic function)
 - [ ] StereoLabs - ZED series
 - [ ] Poorly calibrated multiple web cameras

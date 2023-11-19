@@ -22,59 +22,57 @@ from parallax.panda3d_related import FakeWindowApp
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('model', help='(Base) path of model', type=Path)
-    parser.add_argument('config', help='refer to configs/', type=Path)
-    parser.add_argument('--distance', help='distance to the model in mm', type=float, default=2000)
+    parser.add_argument('tracker', help='refer to configs/tracker', type=Path)
+    parser.add_argument('monitor', help='Monitor configuration. Refer to configs/monitor', type=Path)
     parser.add_argument('--model-hpr', help='yaw-pitch-roll of model in degrees',
                         type=ast.literal_eval, default=(0, 0, 0))
-    parser.add_argument('--track', action='store', choices=('cv2', 'realsense'), default='cv2')
     args = parser.parse_args()
 
-    cnf = parallax.monitor_webcam.RealWorldSetup.from_json(args.config)
+    monitor = parallax.data.Window.from_json(args.monitor)
+    tracker = parallax.tracker.Tracker.from_json(args.tracker)
 
     app = FakeWindowApp()
-    app.setup(cnf.window)
-    app.setup_lighting(at=cnf.window.pose.xyz,)
+    app.setup(monitor)
+    app.setup_lighting(at=monitor.pose.xyz,)
     model = app.load_model(args.model)
-    model_scale = np.mean(cnf.window.size_mm) / 3
+    model_scale = np.mean(monitor.size_mm) / 3
     app.place_model(
         model,
-        at=cnf.window.pose.xyz,
+        at=monitor.pose.xyz,
         hpr=args.model_hpr,
         scale_to=model_scale,
     )
-    app.add_box(window=cnf.window)
-    app.reset_camera((0, args.distance, 0))
+    app.add_box(window=monitor)
+    # app.reset_camera((0, args.distance, 0))
 
-    moving_average = parallax.face_track.start_face_track(5, method=args.track)
+    thread_track, moving_average = tracker.track_faces(5)
 
     def on_update(task):
-        xy = moving_average.get()
-        if xy is None:
+        xyz = moving_average.get()
+        if xyz is None:
             return task.cont
-        if len(xy) == 2:
-            xyz_cam = cnf.camera.image2cam(xy, distance=args.distance)
-        if len(xy) == 3:
-            # print(xy)
-            xyz_cam = cnf.camera.image2cam(xy[:2], distance=xy[2])
-        if cnf.camera.pose.relative_to == 'window':
-            *xyz_world, _ = cnf.window.pose.as_mat() @ (*xyz_cam, 1)
+        # convert opengl coordinates to pandas coordinates
+        xyz = (xyz[0], xyz[2], xyz[1])
+
+        if tracker.inner.master.pose.relative_to == 'window':
+            *xyz_world, _ = monitor.pose.as_mat() @ (*xyz, 1)
         else:
-            xyz_world = xyz_cam
-        app.apply_offset(xyz_world, cnf.window)
+            xyz_world = xyz
+        app.apply_offset(xyz_world, monitor)
         return task.cont
 
     def on_window_change(win: panda3d.core.GraphicsWindow):
-        if (cnf.window.width, cnf.window.height) == win.properties.size:
+        if (monitor.width, monitor.height) == win.properties.size:
             return
-        cnf.window.width, cnf.window.height = win.properties.size
+        monitor.width, monitor.height = win.properties.size
         app.clear_objects()
         app.place_model(
             model,
-            at=cnf.window.pose.xyz,
+            at=monitor.pose.xyz,
             hpr=args.model_hpr,
             scale_to=model_scale,
         )
-        app.add_box(window=cnf.window)
+        app.add_box(window=monitor)
 
     app.updateTask = app.taskMgr.add(on_update, "update")
     app.accept('window-event', on_window_change)

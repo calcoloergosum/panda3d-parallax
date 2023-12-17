@@ -1,0 +1,27 @@
+{
+    "type": "2d_cameras",
+    "master": {
+        "device_name": "FaceTime HD Camera",
+        "device_id": "EAB7A68F-EC2B-4487-AADF-D8A91C1CB782",
+        "depth": 600,
+        "resolution": [1280, 720],
+        "camera_matrix": [
+            [957.775, 0.0, 639.5],
+            [0.0, 957.775, 359.5],
+            [0.0, 0.0, 1.0]
+        ],
+        "distort_coefficients": [
+            -0.0016420259296719949,
+            0.1897635239643446,
+            0.0005543534307743663,
+            -0.00020493093499565062,
+            -0.5441692042809336
+        ],
+        "pose": {
+            "xyz": [0, 0, 94.515],
+            "hpr": [0, -15, 0],
+            "relative_to": "window"
+        }
+    },
+    "slaves": []
+}

@@ -1,0 +1,11 @@
+{
+    "fov_deg": 54.611362,
+    "sensor": {
+        "resolution": [1280, 720]
+    },
+    "pose": {
+        "xyz": [0, 0, 94.515],
+        "hpr": [0, -15, 0],
+        "relative_to": "window"
+    }
+}

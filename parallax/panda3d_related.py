@@ -7,10 +7,12 @@ from typing import Callable, Tuple
 
 import numpy as np
 import panda3d.core
+import structlog
 from direct.showbase.ShowBase import ShowBase
 
-from parallax.data import Hpr, Window, Xyz, hpr2mat, ProjectionMatrix
+from parallax.data import Hpr, ProjectionMatrix, Window, Xyz, hpr2mat
 
+LOGGER = structlog.get_logger()
 
 class FakeWindowApp(ShowBase):
     def __init__(self):
@@ -55,10 +57,9 @@ class FakeWindowApp(ShowBase):
         # Determine scale and translation using bounding volume
         trans_center = np.identity(4)
 
-        xs, ys, zs = get_quantile(model, (0.01, 0.5, 0.99))
+        xs, ys, zs = get_quantile(model, (0.001, 0.5, 0.999))
         trans_center[:3, 3] -= np.array((xs[1], ys[1], zs[1]))
         factor = scale_to / max(xs[2] - xs[0], ys[2] - ys[0], zs[2] - zs[0])
-
         scale = np.diag((factor, factor, factor, 1))
 
         # Use given yaw-pitch-roll
@@ -197,6 +198,9 @@ class FakeWindowApp(ShowBase):
         w, h = window.size_mm
 
         _, y, _ = xyz_cam_
+        if y == 0:
+            LOGGER.critical("encountered depth 0!!")
+            return
         # xyz_cam
         l, _, b, _ = world2cam @ window2world @ ( .5 * w, 0, -.5 * h, 1) / y
         r, _, t, _ = world2cam @ window2world @ (-.5 * w, 0,  .5 * h, 1) / y
@@ -208,7 +212,7 @@ class FakeWindowApp(ShowBase):
         lens.setCoordinateSystem(panda3d.core.CSYupRight)
         lens.setUserMat(
             ProjectionMatrix.from_frustum(
-                l, r, b, t, 1, 1000,
+                l, r, b, t, 1, 10000,
             ).as_panda3d()
         )
         lens.setFilmSize(2)

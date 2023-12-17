@@ -1,9 +1,17 @@
+"""Parallax Demo Program
+
+To use with regular webcam, put `--track cv2`.
+To use with realsenses cameras, put `--track realsense`.
+
+TODO: Make camera settings configurable.
+      Now is hardcoded in `parallax/monitor_webcam.py`
+"""
 from __future__ import annotations
 
 import argparse
+import ast
 from pathlib import Path
 
-import cv2
 import numpy as np
 import panda3d.core
 
@@ -12,54 +20,54 @@ from parallax.panda3d_related import FakeWindowApp
 
 
 def main():
-    import ast
-    parser = argparse.ArgumentParser(description='Render 3D models to images')
-    parser.add_argument('MODEL_DIR', help='Base path of model', type=Path)
-    parser.add_argument('--distance', help='distance to the model in mm', type=float, default=2000)
-    parser.add_argument('--model-hpr', help='yaw-pitch-roll of model in degrees', type=ast.literal_eval, default=(0, 0, 0))
-    parser.add_argument('--mode', action='store', choices=('rgb', 'depth', 'normals'), default='rgb')
-    parser.add_argument('--mkdir', action='store_true')
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('model', help='(Base) path of model', type=Path)
+    parser.add_argument('tracker', help='refer to configs/tracker', type=Path)
+    parser.add_argument('monitor', help='Monitor configuration. Refer to configs/monitor', type=Path)
+    parser.add_argument('--model-hpr', help='yaw-pitch-roll of model in degrees',
+                        type=ast.literal_eval, default=(0, 0, 0))
     args = parser.parse_args()
 
-    cnf = parallax.monitor_webcam.RealWorldSetup.from_preset("Macbook Pro 2021 M1")
+    monitor = parallax.data.Window.from_json(args.monitor)
+    tracker = parallax.tracker.Tracker.from_json(args.tracker)
 
     app = FakeWindowApp()
-    app.setup(cnf.window)
-    app.setup_lighting(at=cnf.window.pose.xyz,)
-    model = app.load_model(args.MODEL_DIR)
+    app.setup(monitor)
+    app.setup_lighting(at=monitor.pose.xyz,)
+    model = app.load_model(args.model)
+    model_scale = np.mean(monitor.size_mm) / 3
     app.place_model(
         model,
-        at=cnf.window.pose.xyz,
+        at=monitor.pose.xyz,
         hpr=args.model_hpr,
-        scale_to=max(cnf.window.size_mm) / 2,
+        scale_to=model_scale,
     )
-    app.add_box(window=cnf.window)
-    app.reset_camera((0, args.distance, 0))
+    app.add_box(window=monitor)
+    # app.reset_camera((0, args.distance, 0))
 
-    moving_average = parallax.face_track.start_face_track(5)
+    thread_track, moving_average = tracker.track_faces(5)
 
     def on_update(task):
-        xy = moving_average.get()
-        if xy is None:
+        xyz = moving_average.get()
+        if xyz is None:
             return task.cont
-        xyz_cam = cnf.webcam.image2cam(xy, distance=args.distance)
-        if cnf.webcam.pose.relative_to == 'window':
-            *xyz_world, _ = cnf.window.pose.as_mat() @ (*xyz_cam, 1)
-        app.apply_offset(xyz_world, cnf.window)
+        if tracker.inner.master.pose.relative_to == 'window':
+            *xyz_world, _ = tracker.inner.master.pose.as_mat() @ (*xyz, 1)
+        app.apply_offset(xyz_world, monitor)
         return task.cont
 
     def on_window_change(win: panda3d.core.GraphicsWindow):
-        if (cnf.window.width, cnf.window.height) == win.properties.size:
+        if (monitor.width, monitor.height) == win.properties.size:
             return
-        cnf.window.width, cnf.window.height = win.properties.size
+        monitor.width, monitor.height = win.properties.size
         app.clear_objects()
         app.place_model(
             model,
-            at=cnf.window.pose.xyz,
+            at=monitor.pose.xyz,
             hpr=args.model_hpr,
-            scale_to=max(cnf.window.size_mm) / 2,
+            scale_to=model_scale,
         )
-        app.add_box(window=cnf.window)
+        app.add_box(window=monitor)
 
     app.updateTask = app.taskMgr.add(on_update, "update")
     app.accept('window-event', on_window_change)
@@ -67,6 +75,7 @@ def main():
 
 if __name__ == '__main__':
     import logging
+
     import structlog
     logging.basicConfig(level=logging.CRITICAL)
     structlog.configure(
